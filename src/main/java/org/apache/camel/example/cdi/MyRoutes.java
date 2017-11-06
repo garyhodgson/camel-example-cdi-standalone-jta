@@ -62,12 +62,18 @@ public class MyRoutes extends CdiRouteBuilder {
         log.info("Context started: {}", event);
 
         userTransaction.begin();
+        log.info("Sending: message 1 - ok");
         activemqInbound.sendBody("message 1 - ok");
-
+        log.info("Sending: message 2 - ok - trigger rollback");
         activemqInbound.sendBody("message 2 - ok - trigger rollback");
         userTransaction.commit();
 
+        log.info("Sending: message 3 - fails");
         activemqInbound.sendBody("message 3 - fails");
+
+
+        
+
     }
 
 }
