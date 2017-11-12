@@ -30,7 +30,9 @@ import org.apache.camel.management.event.CamelContextStartedEvent;
  */
 public class MyRoutes extends CdiRouteBuilder {
 
-    @Produce(uri = "activemq:inbound")
+    private static final String MQ_ENDPOINT = "activemq:inbound?transacted=true";
+
+    @Produce(uri = MQ_ENDPOINT)
     ProducerTemplate activemqInbound;
 
     @Inject
@@ -38,14 +40,13 @@ public class MyRoutes extends CdiRouteBuilder {
 
     @Override
     public void configure() {
-        
-        //@formatter:off
 
+        //@formatter:off
         errorHandler(transactionErrorHandler()
                 .setTransactionPolicy("PROPAGATION_SUPPORTS")
                 .maximumRedeliveries(0));
 
-        from("activemq:inbound")
+        from(MQ_ENDPOINT)
                 .transacted()
                 .routeId("test")
                 .process((Exchange exchange) -> {
@@ -58,16 +59,17 @@ public class MyRoutes extends CdiRouteBuilder {
         //@formatter:on
     }
 
-    void onContextStarted(@Observes CamelContextStartedEvent event) throws Exception{
+    void onContextStarted(@Observes CamelContextStartedEvent event) throws Exception {
         log.info("Context started: {}", event);
 
         userTransaction.begin();
         activemqInbound.sendBody("message 1 - ok");
-
         activemqInbound.sendBody("message 2 - ok - trigger rollback");
         userTransaction.commit();
 
-        activemqInbound.sendBody("message 3 - fails");
+        activemqInbound.sendBody("message 3 - now ok");
+        activemqInbound.sendBody("message 4- trigger rollback");
+
     }
 
 }
