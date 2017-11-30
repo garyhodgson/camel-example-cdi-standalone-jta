@@ -17,8 +17,6 @@
 package org.apache.camel.example.cdi;
 
 import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.transaction.UserTransaction;
 import org.apache.camel.Exchange;
 import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
@@ -34,9 +32,10 @@ public class MyRoutes extends CdiRouteBuilder {
 
     @Produce(uri = MQ_ENDPOINT)
     ProducerTemplate activemqInbound;
+//
+//    @Inject
+//    UserTransaction userTransaction;
 
-    @Inject
-    UserTransaction userTransaction;
 
     @Override
     public void configure() {
@@ -44,7 +43,10 @@ public class MyRoutes extends CdiRouteBuilder {
         //@formatter:off
         errorHandler(transactionErrorHandler()
                 .setTransactionPolicy("PROPAGATION_SUPPORTS")
+                .logStackTrace(false)
                 .maximumRedeliveries(0));
+
+//        from("timer:asd?repeatCount=1").setBody(constant("abc")).to(MQ_ENDPOINT);
 
         from(MQ_ENDPOINT)
                 .transacted()
@@ -62,12 +64,12 @@ public class MyRoutes extends CdiRouteBuilder {
     void onContextStarted(@Observes CamelContextStartedEvent event) throws Exception {
         log.info("Context started: {}", event);
 
-        userTransaction.begin();
-        activemqInbound.sendBody("message 1 - ok");
-        activemqInbound.sendBody("message 2 - ok - trigger rollback");
-        userTransaction.commit();
+//        userTransaction.begin();
+//        activemqInbound.sendBody("message 1 - ok");
+//        activemqInbound.sendBody("message 2 - ok - trigger rollback");
+//        userTransaction.commit();
 
-        activemqInbound.sendBody("message 3 - now ok");
+        activemqInbound.sendBody("message 3 - nok");
         activemqInbound.sendBody("message 4- trigger rollback");
 
     }

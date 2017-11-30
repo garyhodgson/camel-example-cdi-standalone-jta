@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+    <Appenders>
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout pattern="%style{%d{ABSOLUTE} %t [}{white}%highlight{%-5p}%style{] %30.30c{1.}.%-15M}{white} %m%n"/>
+        </Console>
+
+    </Appenders>
+
+    <Loggers>
+        <Logger name="org" level="INFO"/>
+        <Logger name="com" level="INFO"/>
+        <Logger name="jndi" level="WARN"/>
+        <Logger name="com.atomikos" level="DEBUG"/>
+
+        <Root level="INFO">
+            <AppenderRef ref="CONSOLE"/>
+        </Root>
+    </Loggers>
+</Configuration>
+
