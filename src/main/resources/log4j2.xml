@@ -9,10 +9,11 @@
     </Appenders>
 
     <Loggers>
+        <Logger name="com.arjuna" level="DEBUG"/>
+        <Logger name="org.jboss.narayana" level="DEBUG"/>
         <Logger name="org" level="INFO"/>
         <Logger name="com" level="INFO"/>
         <Logger name="jndi" level="WARN"/>
-        <Logger name="com.atomikos" level="DEBUG"/>
 
         <Root level="INFO">
             <AppenderRef ref="CONSOLE"/>

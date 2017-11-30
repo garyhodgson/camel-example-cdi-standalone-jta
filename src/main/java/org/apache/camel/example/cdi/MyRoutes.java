@@ -16,26 +16,26 @@
  */
 package org.apache.camel.example.cdi;
 
+import java.lang.management.ManagementFactory;
 import javax.enterprise.event.Observes;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import org.apache.camel.Exchange;
 import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.cdi.CdiRouteBuilder;
-import org.apache.camel.management.event.CamelContextStartedEvent;
+import org.jboss.weld.environment.se.events.ContainerInitialized;
 
 /**
  * Configures all our Camel routes, components, endpoints and beans
  */
 public class MyRoutes extends CdiRouteBuilder {
 
-    private static final String MQ_ENDPOINT = "activemq:inbound?transacted=true";
+    private static final String MQ_INBOUND_ENDPOINT = "activemq:inbound?transacted=true";
+    private static final String MQ_MIDDLE_ENDPOINT = "activemq:middle?transacted=true";
 
-    @Produce(uri = MQ_ENDPOINT)
+    @Produce(uri = MQ_INBOUND_ENDPOINT)
     ProducerTemplate activemqInbound;
-//
-//    @Inject
-//    UserTransaction userTransaction;
-
 
     @Override
     public void configure() {
@@ -46,11 +46,10 @@ public class MyRoutes extends CdiRouteBuilder {
                 .logStackTrace(false)
                 .maximumRedeliveries(0));
 
-//        from("timer:asd?repeatCount=1").setBody(constant("abc")).to(MQ_ENDPOINT);
-
-        from(MQ_ENDPOINT)
+        from(MQ_INBOUND_ENDPOINT)
                 .transacted()
                 .routeId("test")
+                .to(MQ_MIDDLE_ENDPOINT)
                 .process((Exchange exchange) -> {
                     if (exchange.getIn().getBody(String.class).contains("trigger rollback")) {
                         throw new IllegalStateException("Triggering Rollback");
@@ -61,16 +60,21 @@ public class MyRoutes extends CdiRouteBuilder {
         //@formatter:on
     }
 
-    void onContextStarted(@Observes CamelContextStartedEvent event) throws Exception {
-        log.info("Context started: {}", event);
+    void onContextStarted(@Observes ContainerInitialized event) throws Exception {
+        log.info("ContainerInitialized: {}", event);
 
-//        userTransaction.begin();
-//        activemqInbound.sendBody("message 1 - ok");
-//        activemqInbound.sendBody("message 2 - ok - trigger rollback");
-//        userTransaction.commit();
-
-        activemqInbound.sendBody("message 3 - nok");
+        activemqInbound.sendBody("message 3 - ok");
         activemqInbound.sendBody("message 4- trigger rollback");
+
+        Thread.sleep(2000);
+
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+
+        ObjectName inboundQueueName = ObjectName.getInstance("org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=inbound");
+        System.out.println("inbound QueueSize = " + mbs.getAttribute(inboundQueueName, "QueueSize"));
+
+        ObjectName middleQueueName = ObjectName.getInstance("org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=middle");
+        System.out.println("middle QueueSize = " + mbs.getAttribute(middleQueueName, "QueueSize"));
 
     }
 

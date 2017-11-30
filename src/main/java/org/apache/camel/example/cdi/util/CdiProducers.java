@@ -1,10 +1,8 @@
 package org.apache.camel.example.cdi.util;
 
-import com.atomikos.icatch.jta.UserTransactionImp;
-import com.atomikos.icatch.jta.UserTransactionManager;
-import com.atomikos.jms.AtomikosConnectionFactoryBean;
+import com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionManagerImple;
+import com.arjuna.ats.internal.jta.transaction.arjunacore.UserTransactionImple;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Named;
 import javax.jms.ConnectionFactory;
@@ -25,66 +23,35 @@ public class CdiProducers {
     @Produces
     @ApplicationScoped
     ConnectionFactory createJmsConnectionFactory() throws Exception {
-        System.out.println(">>>>>>>>>>>>>>>> createJmsConnectionFactory");
         ActiveMQXAConnectionFactory activeMQXAConnectionFactory = new ActiveMQXAConnectionFactory();
-        activeMQXAConnectionFactory.setBrokerURL("vm://localhost?broker.persistent=false");
+        activeMQXAConnectionFactory.setBrokerURL("vm://localhost?broker.persistent=false&broker.useJmx=true");
         RedeliveryPolicy redeliveryPolicy = new RedeliveryPolicy();
         redeliveryPolicy.setMaximumRedeliveries(0);
         activeMQXAConnectionFactory.setRedeliveryPolicy(redeliveryPolicy);
-
-        AtomikosConnectionFactoryBean atomikosConnectionFactoryBean = new AtomikosConnectionFactoryBean();
-        atomikosConnectionFactoryBean.setMinPoolSize(1);
-        atomikosConnectionFactoryBean.setMaxPoolSize(1);
-        atomikosConnectionFactoryBean.setUniqueResourceName("xamq");
-        atomikosConnectionFactoryBean.setLocalTransactionMode(false);
-        atomikosConnectionFactoryBean.setXaConnectionFactory(activeMQXAConnectionFactory);
-
-        atomikosConnectionFactoryBean.init();
-
-        System.out.println("<<<<<<<<<<<<<< createJmsConnectionFactory");
-        return atomikosConnectionFactoryBean;
-    }
-
-    public void closeJmsConnectionFactory(@Disposes ConnectionFactory connectionFactory) {
-        System.out.println(">>>>>>>>>>>>>>>>>>>> closeJmsConnectionFactory");
-        ((AtomikosConnectionFactoryBean) connectionFactory).close();
+        return activeMQXAConnectionFactory;
     }
 
     @Produces
-    @ApplicationScoped
     public UserTransaction userTransaction() throws Throwable {
-        System.out.println(">>>>>>>>>>>>>>>> userTransaction");
-        UserTransactionImp userTransactionImp = new UserTransactionImp();
+        UserTransactionImple userTransactionImp = new UserTransactionImple();
         userTransactionImp.setTransactionTimeout(1000);
-        System.out.println("<<<<<<<<<<<< userTransaction");
         return userTransactionImp;
     }
 
     @Produces
     @ApplicationScoped
     public TransactionManager userTransactionManager() throws Throwable {
-        System.out.println(">>>>>>>>>>>>>>>> userTransactionManager");
-        UserTransactionManager userTransactionManager = new UserTransactionManager();
-        userTransactionManager.setForceShutdown(false);
+        TransactionManagerImple userTransactionManager = new TransactionManagerImple();
         userTransactionManager.setTransactionTimeout(20);
-        userTransactionManager.init();
-        System.out.println("<<<<<<<<<<<<<< userTransactionManager");
         return userTransactionManager;
     }
 
-    public void closeUserTransactionManager(@Disposes TransactionManager transactionManager) {
-        System.out.println(">>>>>>>>>>>>>>>>>>>> closeUserTransactionManager");
-        ((UserTransactionManager) transactionManager).close();
-    }
 
     @Produces
-    @Named("jtaTransactionManager")
     @ApplicationScoped
     PlatformTransactionManager createTransactionManager(UserTransaction userTransaction, TransactionManager userTransactionManager) {
-        System.out.println(">>>>>>>>>>>>>>>> createTransactionManager");
         JtaTransactionManager jtaTransactionManager = new JtaTransactionManager(userTransaction, userTransactionManager);
         jtaTransactionManager.afterPropertiesSet();
-        System.out.println("<<<<<<<<<<<<< createTransactionManager");
         return jtaTransactionManager;
     }
 
@@ -92,13 +59,11 @@ public class CdiProducers {
     @Named("activemq")
     @ApplicationScoped
     ActiveMQComponent createActiveMQComponent(PlatformTransactionManager transactionManager, ConnectionFactory jmsConnectionFactory) throws Exception {
-        System.out.println(">>>>>>>>>>>>>>>> createActiveMQComponent");
-        System.out.println(">>>>>>>>>>>>>>>> jmsConnectionFactory " + jmsConnectionFactory);
-        System.out.println(">>>>>>>>>>>>>>>> transactionManager = " + transactionManager);
         ActiveMQConfiguration activeMQConfiguration = new ActiveMQConfiguration();
         activeMQConfiguration.setConnectionFactory(jmsConnectionFactory);
         activeMQConfiguration.setTransactionManager(transactionManager);
         activeMQConfiguration.setTransacted(false);
-        System.out.println("<<<<<<<<<<<<<<<< createActiveMQComponent");
+        activeMQConfiguration.setCacheLevelName("CACHE_CONNECTION");
         return new ActiveMQComponent(activeMQConfiguration);
-    }}
+    }
+}
