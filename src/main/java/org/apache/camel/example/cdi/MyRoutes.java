@@ -56,7 +56,6 @@ public class MyRoutes extends CdiRouteBuilder {
                     }
                 })
                 .to("log:out");
-
         //@formatter:on
     }
 
@@ -66,15 +65,15 @@ public class MyRoutes extends CdiRouteBuilder {
         activemqInbound.sendBody("message 3 - ok");
         activemqInbound.sendBody("message 4- trigger rollback");
 
-        Thread.sleep(2000);
+        Thread.sleep(10000);
 
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
 
         ObjectName inboundQueueName = ObjectName.getInstance("org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=inbound");
-        System.out.println("inbound QueueSize = " + mbs.getAttribute(inboundQueueName, "QueueSize"));
+        log.info(">>>>>>>>>>>>>>>>>>>>> inbound QueueSize = {} (expect:0)", mbs.getAttribute(inboundQueueName, "QueueSize"));
 
         ObjectName middleQueueName = ObjectName.getInstance("org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=middle");
-        System.out.println("middle QueueSize = " + mbs.getAttribute(middleQueueName, "QueueSize"));
+        log.info(">>>>>>>>>>>>>>>>>>>>> middle QueueSize = {} (expect:1)", mbs.getAttribute(middleQueueName, "QueueSize"));
 
     }
 
